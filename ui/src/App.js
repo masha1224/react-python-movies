@@ -1,5 +1,5 @@
 import './App.css';
-import {useState} from "react";
+import { useState, useEffect } from "react"; // Dodaj `useEffect`
 import "milligram";
 import MovieForm from "./MovieForm";
 import MoviesList from "./MoviesList";
@@ -8,15 +8,37 @@ function App() {
     const [movies, setMovies] = useState([]);
     const [addingMovie, setAddingMovie] = useState(false);
 
-    async function handleAddMovie(movie) {
-        const response = await fetch('/movies', {
-            method: 'POST',
-            body: JSON.stringify(movie),
-            headers: { 'Content-Type': 'application/json' }
+
+    // Pobieranie filmów z serwera przy załadowaniu komponentu
+    useEffect(() => {
+        const fetchMovies = async () => {
+            const response = await fetch(`/movies`);
+            if (response.ok) {
+                const movies = await response.json();
+                setMovies(movies); // Aktualizacja stanu filmów
+            }
+        };
+        fetchMovies();
+    }, []); // [] oznacza, że efekt wykona się tylko raz (przy montowaniu komponentu)
+
+async function handleAddMovie(movie) {
+    const response = await fetch('/movies', {
+        method: 'POST',
+        body: JSON.stringify(movie), // Movie zawiera teraz aktorów
+        headers: { 'Content-Type': 'application/json' }
+    });
+    if (response.ok) {
+        setMovies([...movies, movie]); // Dodanie nowego filmu (z aktorami) do stanu
+        setAddingMovie(false); // Ukrywanie formularza
+    }
+}
+    async function handleDeleteMovie(movie) {
+        const response = await fetch(`/movies/${movie.id}`, {
+            method: 'DELETE',
         });
         if (response.ok) {
-            setMovies([...movies, movie]);
-            setAddingMovie(false);
+            const nextMovies = movies.filter(m => m !== movie);
+            setMovies(nextMovies);
         }
     }
 
@@ -26,7 +48,7 @@ function App() {
             {movies.length === 0
                 ? <p>No movies yet. Maybe add something?</p>
                 : <MoviesList movies={movies}
-                              onDeleteMovie={(movie) => setMovies(movies.filter(m => m !== movie))}
+                              onDeleteMovie={handleDeleteMovie} // Przekazujemy funkcję usuwania do MoviesList
                 />}
             {addingMovie
                 ? <MovieForm onMovieSubmit={handleAddMovie}

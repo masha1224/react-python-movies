@@ -24,19 +24,17 @@ export default function MovieForm(props) {
 
 
     function addMovie(event) {
-    event.preventDefault();
-    if (title.length < 5) {
-        return alert('Tytuł jest za krótki');
+        event.preventDefault();
+        if (title.length < 5) {
+            return alert('Tytuł jest za krótki');
+        }
+        props.onMovieSubmit({title, year, director, description});
+        setTitle('');
+        setYear('');
+        setDirector('');
+        setDescription('');
+        setActors([]); // Czyszczenie listy aktorów po dodaniu filmu
     }
-    // Przekazywanie aktorów do props
-    props.onMovieSubmit({title, year, director, description, actors});
-    setTitle('');
-    setYear('');
-    setDirector('');
-    setDescription('');
-    // Usuwanie aktorów może być zachowane po dodaniu, jeśli chcesz to zrobić
-    // setActors([]);
-}
 
     return <form onSubmit={addMovie}>
         <h2>Add movie</h2>
