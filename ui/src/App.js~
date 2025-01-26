@@ -29,8 +29,7 @@ function App() {
             headers: { 'Content-Type': 'application/json' }
         });
         if (response.ok) {
-            const movieFromServer = await response.json(); // Pobranie filmu z serwera
-            setMovies([...movies, movieFromServer]); // Dodanie nowego filmu do listy
+            setMovies([...movies, movie]); // Dodanie nowego filmu do listy
             setAddingMovie(false); // Ukrywanie formularza
         }
     }
