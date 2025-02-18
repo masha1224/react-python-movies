@@ -1,5 +1,5 @@
 import './App.css';
-import { useState, useEffect } from "react"; // Dodaj `useEffect`
+import { useState, useEffect } from "react";
 import "milligram";
 import MovieForm from "./MovieForm";
 import MoviesList from "./MoviesList";
@@ -7,7 +7,7 @@ import MoviesList from "./MoviesList";
 function App() {
     const [movies, setMovies] = useState([]);
     const [addingMovie, setAddingMovie] = useState(false);
-
+    const [loading, setLoading] = useState(true); // Stan ładowania
 
     // Pobieranie filmów z serwera przy załadowaniu komponentu
     useEffect(() => {
@@ -16,46 +16,91 @@ function App() {
             if (response.ok) {
                 const movies = await response.json();
                 setMovies(movies); // Aktualizacja stanu filmów
+                setLoading(false); // Zakończenie ładowania
             }
         };
         fetchMovies();
-    }, []); // [] oznacza, że efekt wykona się tylko raz (przy montowaniu komponentu)
+    }, []);
+
+    async function handleAddActor(movieId, newActor) {
+        const response = await fetch(`/movies/${movieId}/actors`, {
+            method: 'POST',
+            body: JSON.stringify(newActor),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.ok) {
+            const updatedMovie = await response.json();
+            setMovies(movies.map(movie =>
+                movie.id === movieId ? updatedMovie : movie
+            ));
+        } else {
+            console.error('Failed to add actor:', response.status);
+        }
+    }
+
+    async function handleRemoveActor(movieId, actor) {
+        const response = await fetch(`/movies/${movieId}/actors/${actor.id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            setMovies(movies.map(movie =>
+                movie.id === movieId
+                    ? { ...movie, actors: movie.actors.filter(a => a.id !== actor.id) }
+                    : movie
+            ));
+        }
+    }
 
     async function handleAddMovie(movie) {
-        console.log("Sending movie:", movie); // Loguj dane przed wysłaniem
         const response = await fetch('/movies', {
             method: 'POST',
-            body: JSON.stringify(movie), // Movie zawiera teraz aktorów
+            body: JSON.stringify(movie),
             headers: { 'Content-Type': 'application/json' }
         });
         if (response.ok) {
-            setMovies([...movies, movie]); // Dodanie nowego filmu do listy
-            setAddingMovie(false); // Ukrywanie formularza
+            const movieFromServer = await response.json();
+            setMovies([...movies, movieFromServer]);
+            setAddingMovie(false);
         }
     }
+
     async function handleDeleteMovie(movie) {
         const response = await fetch(`/movies/${movie.id}`, {
             method: 'DELETE',
         });
         if (response.ok) {
-            const nextMovies = movies.filter(m => m !== movie);
-            setMovies(nextMovies);
+            setMovies(movies.filter(m => m !== movie));
         }
     }
 
     return (
         <div className="container">
-            <h1>My favourite movies to watch</h1>
-            {movies.length === 0
-                ? <p>No movies yet. Maybe add something?</p>
-                : <MoviesList movies={movies}
-                              onDeleteMovie={handleDeleteMovie} // Przekazujemy funkcję usuwania do MoviesList
-                />}
-            {addingMovie
-                ? <MovieForm onMovieSubmit={handleAddMovie}
-                             buttonLabel="Add a movie"
+            <h1 className="fade-in">My favourite movies to watch</h1>
+            {loading ? (
+                <div className="loading">
+                    <span>Loading movies...</span>
+                </div>
+            ) : movies.length === 0 ? (
+                <p>No movies yet. Maybe add something?</p>
+            ) : (
+                <MoviesList
+                    movies={movies}
+                    onDeleteMovie={handleDeleteMovie}
+                    onAddActor={handleAddActor}
+                    onRemoveActor={handleRemoveActor}
                 />
-                : <button onClick={() => setAddingMovie(true)}>Add a movie</button>}
+            )}
+            {addingMovie ? (
+                <MovieForm onMovieSubmit={handleAddMovie} buttonLabel="Add a movie" />
+            ) : (
+                <button
+                    className="fade-in"
+                    onClick={() => setAddingMovie(true)}>
+                    Add a movie
+                </button>
+            )}
         </div>
     );
 }
